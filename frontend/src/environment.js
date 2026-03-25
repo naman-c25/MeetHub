@@ -1,6 +1,6 @@
 let IS_PROD = true;
 const server = IS_PROD ?
-    "https://meethub-dkgw.onrender.com" :
+    "meet-hub-steel.vercel.app" :
 
     "http://localhost:8000"
 
