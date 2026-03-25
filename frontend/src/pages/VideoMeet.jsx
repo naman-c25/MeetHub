@@ -121,6 +121,7 @@ export default function VideoMeetComponent() {
         }
     };
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (video !== undefined && audio !== undefined) {
             getUserMedia();
@@ -391,6 +392,7 @@ export default function VideoMeetComponent() {
         // getUserMedia();
     }
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (screen !== undefined) {
             getDislayMedia();
@@ -406,17 +408,6 @@ export default function VideoMeetComponent() {
             tracks.forEach(track => track.stop())
         } catch (e) { }
         window.location.href = "/"
-    }
-
-    let openChat = () => {
-        setModal(true);
-        setNewMessages(0);
-    }
-    let closeChat = () => {
-        setModal(false);
-    }
-    let handleMessage = (e) => {
-        setMessage(e.target.value);
     }
 
     const addMessage = (data, sender, socketIdSender) => {
