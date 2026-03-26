@@ -2,12 +2,15 @@ import React, { useContext, useEffect, useRef, useState } from 'react'
 import withAuth from '../utils/withAuth'
 import { useNavigate } from 'react-router-dom'
 import "../App.css";
-import { Button, IconButton, TextField } from '@mui/material';
+import { Button, IconButton, Snackbar, TextField, Tooltip } from '@mui/material';
 import RestoreIcon from '@mui/icons-material/Restore';
+import AddIcon from '@mui/icons-material/Add';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { AuthContext } from '../contexts/AuthContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { gsap } from 'gsap';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import generateMeetingId from '../utils/generateMeetingId';
 
 const darkTheme = createTheme({
     palette: {
@@ -42,6 +45,11 @@ const darkTheme = createTheme({
                         boxShadow: '0 6px 28px rgba(255,152,57,0.4)',
                     },
                 },
+                outlined: {
+                    borderColor: '#2a2a3e',
+                    color: '#a0a0b0',
+                    '&:hover': { borderColor: '#6c63ff', color: '#fff', background: 'rgba(108,99,255,0.08)' },
+                },
                 text: { color: '#a0a0b0', '&:hover': { color: '#fff' } },
             },
         },
@@ -50,17 +58,23 @@ const darkTheme = createTheme({
                 root: { color: '#a0a0b0', '&:hover': { color: '#fff' } },
             },
         },
+        MuiTooltip: {
+            styleOverrides: {
+                tooltip: { background: '#1a1a2e', color: '#fff', border: '1px solid #2a2a3e' },
+            },
+        },
     },
 });
 
 function HomeComponent() {
     let navigate = useNavigate();
     const [meetingCode, setMeetingCode] = useState('');
+    const [newMeetingId, setNewMeetingId] = useState('');
+    const [copied, setCopied] = useState(false);
     const { addToUserHistory } = useContext(AuthContext);
     const glowRef = useRef(null);
 
     useEffect(() => {
-        // GSAP pulsing glow behind the join button
         gsap.to(glowRef.current, {
             scale: 1.15,
             opacity: 0.6,
@@ -71,9 +85,22 @@ function HomeComponent() {
         });
     }, []);
 
-    let handleJoinVideoCall = async () => {
-        await addToUserHistory(meetingCode);
-        navigate(`/${meetingCode}`);
+    const handleJoinVideoCall = async () => {
+        if (!meetingCode.trim()) return;
+        await addToUserHistory(meetingCode.trim());
+        navigate(`/${meetingCode.trim()}`);
+    };
+
+    const handleNewMeeting = async () => {
+        const id = generateMeetingId();
+        setNewMeetingId(id);
+        await addToUserHistory(id);
+        navigate(`/${id}`);
+    };
+
+    const handleCopyId = () => {
+        navigator.clipboard.writeText(newMeetingId);
+        setCopied(true);
     };
 
     const containerVariants = {
@@ -121,17 +148,41 @@ function HomeComponent() {
                         initial="hidden"
                         animate="visible"
                     >
-                        <div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.8rem' }}>
                             <motion.h2 variants={itemVariants}>
                                 Providing Quality Video Call<br />
                                 <span style={{ color: '#FF9839' }}>Just Like Quality Education</span>
                             </motion.h2>
 
+                            {/* New Meeting button */}
+                            <motion.div variants={itemVariants}>
+                                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                                    <Button
+                                        variant="contained"
+                                        startIcon={<AddIcon />}
+                                        onClick={handleNewMeeting}
+                                        sx={{ py: 1.6, px: 3, borderRadius: '10px', fontWeight: 700, fontSize: '1rem' }}
+                                    >
+                                        New Meeting
+                                    </Button>
+                                </motion.div>
+                            </motion.div>
+
+                            {/* Divider */}
+                            <motion.div
+                                variants={itemVariants}
+                                style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
+                            >
+                                <div style={{ flex: 1, height: '1px', background: '#2a2a3e' }} />
+                                <span style={{ color: '#555570', fontSize: '0.8rem' }}>or join with a code</span>
+                                <div style={{ flex: 1, height: '1px', background: '#2a2a3e' }} />
+                            </motion.div>
+
+                            {/* Join by code */}
                             <motion.div
                                 variants={itemVariants}
                                 style={{ display: 'flex', gap: '12px', alignItems: 'center', position: 'relative' }}
                             >
-                                {/* Glow effect behind join button */}
                                 <div
                                     ref={glowRef}
                                     style={{
@@ -147,16 +198,57 @@ function HomeComponent() {
                                 />
                                 <TextField
                                     onChange={e => setMeetingCode(e.target.value)}
-                                    label="Meeting Code"
+                                    onKeyDown={e => e.key === 'Enter' && handleJoinVideoCall()}
+                                    label="Enter meeting code"
                                     variant="outlined"
                                     value={meetingCode}
+                                    sx={{ minWidth: '220px' }}
                                 />
                                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                                    <Button onClick={handleJoinVideoCall} variant='contained' sx={{ py: 1.8, px: 3, borderRadius: '10px', fontWeight: 700 }}>
+                                    <Button
+                                        onClick={handleJoinVideoCall}
+                                        variant="outlined"
+                                        sx={{ py: 1.8, px: 3, borderRadius: '10px', fontWeight: 700 }}
+                                    >
                                         Join
                                     </Button>
                                 </motion.div>
                             </motion.div>
+
+                            {/* Generated meeting ID display (shown after creating a new meeting) */}
+                            <AnimatePresence>
+                                {newMeetingId && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 10 }}
+                                        transition={{ duration: 0.35 }}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            padding: '12px 16px',
+                                            background: 'rgba(108,99,255,0.1)',
+                                            border: '1px solid rgba(108,99,255,0.3)',
+                                            borderRadius: '10px',
+                                        }}
+                                    >
+                                        <div style={{ flex: 1 }}>
+                                            <p style={{ color: '#a0a0b0', fontSize: '0.75rem', marginBottom: '2px' }}>
+                                                Your meeting ID
+                                            </p>
+                                            <p style={{ color: '#fff', fontWeight: 700, fontSize: '1rem', letterSpacing: '0.5px' }}>
+                                                {newMeetingId}
+                                            </p>
+                                        </div>
+                                        <Tooltip title={copied ? 'Copied!' : 'Copy ID'}>
+                                            <IconButton onClick={handleCopyId} size="small" sx={{ color: copied ? '#FF9839' : '#a0a0b0' }}>
+                                                <ContentCopyIcon fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </motion.div>
 
@@ -170,6 +262,13 @@ function HomeComponent() {
                     </motion.div>
                 </div>
             </div>
+
+            <Snackbar
+                open={copied}
+                autoHideDuration={2000}
+                onClose={() => setCopied(false)}
+                message="Meeting ID copied to clipboard"
+            />
         </ThemeProvider>
     );
 }

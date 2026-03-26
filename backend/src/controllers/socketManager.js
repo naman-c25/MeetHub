@@ -40,7 +40,8 @@ export const connectToSocket = (server) => {
             if (messages[path] !== undefined) {
                 for (let a = 0; a < messages[path].length; ++a) {
                     io.to(socket.id).emit("chat-message", messages[path][a]['data'],
-                        messages[path][a]['sender'], messages[path][a]['socket-id-sender'])
+                        messages[path][a]['sender'], messages[path][a]['socket-id-sender'],
+                        messages[path][a]['timestamp'])
                 }
             }
 
@@ -69,11 +70,12 @@ export const connectToSocket = (server) => {
                     messages[matchingRoom] = []
                 }
 
-                messages[matchingRoom].push({ 'sender': sender, "data": data, "socket-id-sender": socket.id })
+                messages[matchingRoom].push({ 'sender': sender, "data": data, "socket-id-sender": socket.id, "timestamp": new Date().toISOString() })
                 console.log("message", matchingRoom, ":", sender, data)
 
+                const timestamp = new Date().toISOString();
                 connections[matchingRoom].forEach((elem) => {
-                    io.to(elem).emit("chat-message", data, sender, socket.id)
+                    io.to(elem).emit("chat-message", data, sender, socket.id, timestamp)
                 })
             }
 
